@@ -1,29 +1,27 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "installCommand": "npm run install:frontend",
+  "buildCommand": "npm install && npm run build",
+  "installCommand": "cd frontend && npm install",
   "outputDirectory": "frontend/dist",
-  "framework": "vite",
+  "framework": null,
   "rewrites": [
     {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
       "destination": "/api/index.py"
     },
     {
+      "source": "/(.*)",
+      "destination": "/frontend/dist/index.html"
+    }
+  ],
+  "redirects": [
+    {
       "source": "/health",
-      "destination": "/api/index.py"
+      "destination": "/api/health"
     },
     {
       "source": "/docs",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/openapi.json",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/index.html"
+      "destination": "/api/docs"
     }
   ]
 }
