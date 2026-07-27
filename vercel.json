@@ -3,5 +3,15 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://empty-service-production-731c.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://empty-service-production-731c.up.railway.app/health"
+    }
+  ]
 }
