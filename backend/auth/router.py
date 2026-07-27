@@ -134,7 +134,45 @@ def send_verification_email_helper(to_email: str, token: str, name: str) -> None
         print(f"\n[DEV] Verification link for {to_email}:\n  {verify_url}\n")
         return
 
-    # Send actual email via SMTP
+    # Try Resend API first (more reliable than SMTP on Railway)
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    if resend_api_key:
+        try:
+            import httpx
+            html_body = f"""
+            <div style="font-family:Arial;max-width:480px;margin:30px auto;padding:30px;background:#1e293b;border-radius:12px;color:#e2e8f0;text-align:center;">
+                <h2 style="color:#fff;">Welcome to Compete IQ!</h2>
+                <p>Hi {name},</p>
+                <p>Click the button below to verify your email address:</p>
+                <a href="{verify_url}" style="display:inline-block;background:#6366f1;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin:20px 0;">Verify Email</a>
+                <p style="color:#94a3b8;font-size:12px;">Or copy this link: {verify_url}</p>
+                <p style="color:#94a3b8;font-size:12px;">This link expires in 7 days.</p>
+            </div>"""
+            
+            response = httpx.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {resend_api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "from": cfg["from_addr"],
+                    "to": [to_email],
+                    "subject": "Verify your Compete IQ account",
+                    "html": html_body
+                },
+                timeout=15
+            )
+            if response.status_code == 200:
+                print(f"\n[EMAIL SENT via Resend API] Verification link sent to {to_email}")
+                logger.info(f"Verification email sent via Resend API to {to_email}")
+                return
+            else:
+                logger.warning(f"Resend API failed: {response.status_code} - {response.text}")
+        except Exception as api_exc:
+            logger.warning(f"Resend API error: {api_exc}")
+
+    # Fallback to SMTP
     try:
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
@@ -156,7 +194,7 @@ def send_verification_email_helper(to_email: str, token: str, name: str) -> None
         msg["To"] = to_email
         msg.attach(MIMEText(html_body, "html"))
 
-        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=10) as server:
+        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
             server.ehlo()
             if cfg["port"] == 587:
                 server.starttls()
@@ -168,7 +206,6 @@ def send_verification_email_helper(to_email: str, token: str, name: str) -> None
     except Exception as exc:
         logger.error(f"Failed to send verification email: {exc}")
         print(f"\n[EMAIL FAILED] Could not send email to {to_email}: {exc}")
-        # Still print the link as fallback
         print(f"[DEV FALLBACK] Verification link for {to_email}:\n  {verify_url}\n")
 
 
