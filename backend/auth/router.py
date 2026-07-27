@@ -156,7 +156,7 @@ def send_verification_email_helper(to_email: str, token: str, name: str) -> None
                     "Content-Type": "application/json"
                 },
                 json={
-                    "from": cfg["from_addr"],
+                    "from": "Compete IQ <onboarding@resend.dev>",
                     "to": [to_email],
                     "subject": "Verify your Compete IQ account",
                     "html": html_body
