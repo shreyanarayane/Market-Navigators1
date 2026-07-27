@@ -4,18 +4,18 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "outputDirectory": "dist",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "https://empty-service-production-731c.up.railway.app/api/:path*"
+      "src": "/api/(.*)",
+      "dest": "https://empty-service-production-731c.up.railway.app/api/$1"
     },
     {
-      "source": "/health",
-      "destination": "https://empty-service-production-731c.up.railway.app/health"
+      "src": "/health",
+      "dest": "https://empty-service-production-731c.up.railway.app/health"
     },
     {
-      "source": "/((?!assets/).*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
