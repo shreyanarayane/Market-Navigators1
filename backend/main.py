@@ -84,6 +84,55 @@ async def llm_status():
     return llm_client.get_llm_status()
 
 
+# ===============================================================================
+# DEBUG ENDPOINTS - Remove in production
+# ===============================================================================
+@app.get("/api/debug/supabase")
+async def debug_supabase():
+    """Debug endpoint to check Supabase configuration and test connection."""
+    from services import supabase_client
+    s = get_settings()
+    
+    return {
+        "supabase_url_set": bool(s.SUPABASE_URL),
+        "supabase_url": s.SUPABASE_URL[:20] + "..." if s.SUPABASE_URL else None,
+        "service_key_set": bool(s.SUPABASE_SERVICE_KEY),
+        "service_key_prefix": s.SUPABASE_SERVICE_KEY[:20] + "..." if s.SUPABASE_SERVICE_KEY else None,
+        "is_configured": supabase_client.is_configured(),
+    }
+
+
+@app.post("/api/debug/test-save")
+async def debug_test_save():
+    """Test endpoint to save sample data to Supabase and verify it works."""
+    from services import supabase_client
+    
+    job_id = str(uuid.uuid4())
+    test_products = [{
+        "source": "test",
+        "source_id": f"test-{job_id[:8]}",
+        "name": "Test Product - Immune Support",
+        "brand": "Test Brand",
+        "category": "Supplements",
+        "match_score": 0.95
+    }]
+    test_claims = [{
+        "product_source_id": f"test-{job_id[:8]}",
+        "claim_text": "Test claim - immune support",
+        "claim_type": "immune_support",
+        "confidence": 0.9
+    }]
+    
+    supabase_client.save_all_results(job_id, test_products, test_claims, [], [])
+    
+    return {
+        "message": "Test data saved",
+        "job_id": job_id,
+        "products_saved": len(test_products),
+        "supabase_configured": supabase_client.is_configured()
+    }
+
+
 from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
