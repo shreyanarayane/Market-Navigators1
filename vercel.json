@@ -12,6 +12,10 @@
     {
       "source": "/health",
       "destination": "https://empty-service-production-731c.up.railway.app/health"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
     }
   ]
 }
