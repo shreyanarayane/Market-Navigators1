@@ -1,17 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm install && npm run build",
+  "buildCommand": "npm run build",
+  "installCommand": "npm run install:frontend",
   "outputDirectory": "frontend/dist",
-  "build": {
-    "env": {
-      "PYO3_USE_ABI3_FORWARD_COMPATIBILITY": "1",
-      "PYTHON_VERSION": "3.12"
-    }
-  },
-  "env": {
-    "PYO3_USE_ABI3_FORWARD_COMPATIBILITY": "1",
-    "PYTHON_VERSION": "3.12"
-  },
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/api/:path*",
