@@ -495,8 +495,8 @@ async def complete_signup(req: CompleteSignupRequest):
     )
 
 
-@router.post("/register", response_model=RegisterResponse, status_code=201)
-@router.post("/signup", response_model=RegisterResponse, status_code=201)
+@router.post("/register", response_model=TokenResponse, status_code=201)
+@router.post("/signup", response_model=TokenResponse, status_code=201)
 async def register(req: RegisterRequest):
     email = req.email.strip().lower()
     if not email or "@" not in email:
@@ -542,25 +542,43 @@ async def register(req: RegisterRequest):
 
     sync_user_to_public_table(user_id, email, name)
 
+    # Auto-verify in dev mode (when SMTP is not configured)
+    dev_mode = not os.getenv("SMTP_USER")
     USERS_DB[email] = {
         "email": email,
         "name": name,
         "password_hash": _hash_pw(req.password),
         "role": "admin",
-        "is_active": False,
-        "email_verified": False,
+        "is_active": True,
+        "email_verified": dev_mode,  # Auto-verify in dev mode
         "id": user_id,
     }
 
     verification_token = _make_verification_token(email)
     send_verification_email_helper(email, verification_token, name)
 
-    msg = "Registration successful! Please check your email inbox for the verification link before signing in."
-    dev_mode = not os.getenv("SMTP_USER")
-    res_obj = RegisterResponse(message=msg, email=email)
     if dev_mode:
-        res_obj.verification_link = f"{_get_smtp_settings()['frontend_base_url']}/verify-email?token={verification_token}"
-    return res_obj
+        # In dev mode, auto-login immediately and return token
+        token = create_access_token({"sub": email, "email": email, "user_metadata": {"full_name": name, "role": "admin"}})
+        return TokenResponse(
+            access_token=token,
+            email=email,
+            name=name,
+            role="admin",
+            expires_in=JWT_EXPIRE_HOURS * 3600,
+            email_verified=True,
+        )
+
+    # Production mode: return success with verification link
+    token = create_access_token({"sub": email, "email": email, "user_metadata": {"full_name": name, "role": "admin"}})
+    return TokenResponse(
+        access_token=token,
+        email=email,
+        name=name,
+        role="admin",
+        expires_in=JWT_EXPIRE_HOURS * 3600,
+        email_verified=False,  # User needs to verify email
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
