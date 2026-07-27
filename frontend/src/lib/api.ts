@@ -49,8 +49,20 @@ export interface MarketTrendsResponse {
   job_ids: string[];
 }
 
-const BACKEND_URL = import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? "http://localhost:8000" : "");
+// Use relative URLs in production when VITE_API_BASE_URL is not set
+// This works because vercel.json proxies /api/* to the Railway backend
+const getBackendUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  if (import.meta.env.DEV) {
+    return "http://localhost:8000";
+  }
+  // In production without explicit backend URL, use relative path for Vercel proxy
+  return "";
+};
+
+const BACKEND_URL = getBackendUrl();
 
 // ---------------------------------------------------------------------------
 // Demo fallback data — used when backend is unreachable (e.g. Vercel deploy
@@ -102,8 +114,13 @@ function getDemoData(query: string): MarketTrendsResponse {
 }
 
 export async function fetchMarketTrends(query: string, limit = 25): Promise<MarketTrendsResponse> {
-  // If no backend URL is configured (e.g. Vercel deploy without a backend), return demo data
-  if (!BACKEND_URL) {
+  // In production without explicit backend URL, use relative path for Vercel proxy
+  const apiBase = BACKEND_URL || "";
+  const useRelative = !BACKEND_URL && !import.meta.env.DEV;
+  const endpoint = useRelative ? "/api/trends" : `${apiBase}/api/trends`;
+
+  // If no backend available in production and no proxy configured, return demo data
+  if (!apiBase && !useRelative) {
     console.warn("[api] No backend URL configured — returning demo data.");
     return getDemoData(query);
   }
@@ -111,7 +128,7 @@ export async function fetchMarketTrends(query: string, limit = 25): Promise<Mark
   const token = getAuthToken();
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/trends`, {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -141,7 +158,12 @@ export async function sendAssistantChat(message: string): Promise<{
   chart_data: { category: string; value: number }[];
   products: ProductMatch[];
 }> {
-  if (!BACKEND_URL) {
+  // In production without explicit backend URL, use relative path for Vercel proxy
+  const apiBase = BACKEND_URL || "";
+  const useRelative = !BACKEND_URL && !import.meta.env.DEV;
+  const endpoint = useRelative ? "/api/assistant/chat" : `${apiBase}/api/assistant/chat`;
+
+  if (!apiBase && !useRelative) {
     return {
       reply: `**Demo Mode** — No backend is connected.\n\nIn a live environment, this would query the AI agent pipeline for: *"${message}"*\n\nTo connect a real backend, deploy the FastAPI service and set the \`VITE_API_BASE_URL\` environment variable on Vercel.`,
       products_count: 8,
@@ -160,7 +182,7 @@ export async function sendAssistantChat(message: string): Promise<{
   const token = getAuthToken();
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/assistant/chat`, {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

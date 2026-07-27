@@ -115,9 +115,14 @@ def set_job_status(job_id: str, agent: str, status: str, error: str | None = Non
 
 def save_all_results(job_id: str, products: list[dict[str, Any]], claims: list[dict[str, Any]], ingredients: list[dict[str, Any]], revenue: list[dict[str, Any]]) -> None:
     """Helper to persist all agent pipeline results to Supabase in one call."""
+    print(f"[Supabase] save_all_results called - job_id: {job_id}")
+    print(f"[Supabase] Products: {len(products)}, Claims: {len(claims)}, Ingredients: {len(ingredients)}, Revenue: {len(revenue)}")
+    
     if not is_configured():
+        print("[Supabase] NOT CONFIGURED - skipping save. Set SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables.")
         return
     try:
+        print(f"[Supabase] Saving {len(products)} products, {len(claims)} claims, {len(ingredients)} ingredients, {len(revenue)} revenue...")
         if products:
             upsert_products(job_id, products)
         if claims:
@@ -127,7 +132,9 @@ def save_all_results(job_id: str, products: list[dict[str, Any]], claims: list[d
         if revenue:
             insert_revenue(job_id, revenue)
         set_job_status(job_id, "orchestrator", "success")
+        print(f"[Supabase] Successfully saved all results for job_id: {job_id}")
     except Exception as exc:
+        print(f"[Supabase] ERROR saving results: {exc}")
         set_job_status(job_id, "orchestrator", "failed", error=str(exc))
 
 
