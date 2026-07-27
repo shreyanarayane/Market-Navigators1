@@ -44,6 +44,34 @@ const topMock = [
   { name: "Spirulina", score: 42 },
 ];
 
+// Generate mock trend data for actual ingredients found
+function generateIngredientTrends(topIngredients: { name: string; score: number }[]) {
+  const weeks = ["W1", "W2", "W3", "W4", "W5"];
+  const colors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+  
+  if (!topIngredients.length) {
+    return { data: ingredientTrend, ingredients: [] };
+  }
+  
+  const data = weeks.map((week, i) => {
+    const row: Record<string, string | number> = { week };
+    topIngredients.slice(0, 4).forEach((ing, j) => {
+      // Generate trending data (increasing trend)
+      const baseValue = ing.score * (0.3 + Math.random() * 0.2);
+      const growthFactor = 1 + (i * 0.15) + Math.random() * 0.1;
+      row[ing.name] = Math.round(baseValue * growthFactor);
+    });
+    return row;
+  });
+  
+  const ingredientLines = topIngredients.slice(0, 4).map((ing, i) => ({
+    name: ing.name,
+    color: colors[i % colors.length]
+  }));
+  
+  return { data, ingredients: ingredientLines };
+}
+
 function IngredientsPage() {
   const { results } = useMarketData();
 
@@ -63,6 +91,10 @@ function IngredientsPage() {
     }));
   }, [results]);
 
+  const trendData = useMemo(() => {
+    return generateIngredientTrends(displayedTop);
+  }, [displayedTop]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -79,7 +111,7 @@ function IngredientsPage() {
           </CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={ingredientTrend}>
+              <LineChart data={trendData.data}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="week" stroke="var(--muted-foreground)" fontSize={12} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={12} />
@@ -92,10 +124,16 @@ function IngredientsPage() {
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="Ashwagandha" stroke="var(--chart-1)" strokeWidth={2} />
-                <Line type="monotone" dataKey="Collagen" stroke="var(--chart-2)" strokeWidth={2} />
-                <Line type="monotone" dataKey="Lion's Mane" stroke="var(--chart-3)" strokeWidth={2} />
-                <Line type="monotone" dataKey="Elderberry" stroke="var(--chart-4)" strokeWidth={2} />
+                {trendData.ingredients.map((ing, i) => (
+                  <Line
+                    key={ing.name}
+                    type="monotone"
+                    dataKey={ing.name}
+                    stroke={ing.color}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
