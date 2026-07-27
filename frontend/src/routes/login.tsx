@@ -104,14 +104,14 @@ function LoginPage() {
                 No account found for <span className="underline">{email}</span>
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Would you like to create a new account using OTP verification?
+                Would you like to create a new account?
               </p>
               <Button
                 type="button"
                 className="mt-3 w-full text-xs"
-                onClick={() => navigate({ to: `/signup?email=${encodeURIComponent(email)}&mode=otp` as any })}
+                onClick={() => navigate({ to: `/signup?email=${encodeURIComponent(email)}` as any })}
               >
-                Create Account with OTP
+                Create Account
               </Button>
             </div>
           )}
@@ -126,31 +126,30 @@ function LoginPage() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  to="/login"
-                  className="text-xs text-primary hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
                 required
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
-            </Button>
-            <Button type="button" variant="outline" className="w-full">
-              Continue with Google
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Signing in...
+                </span>
+              ) : (
+                "Sign in"
+              )}
             </Button>
           </form>
           <p className="mt-6 text-center text-sm text-muted-foreground">
