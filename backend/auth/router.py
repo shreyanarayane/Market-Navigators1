@@ -37,7 +37,27 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 24 * 7
 
 # In-memory stores as development fallback when Supabase is unreachable or in demo tests
-USERS_DB: dict[str, dict] = {}
+# Pre-computed SHA256 hash for "12345": 5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5
+USERS_DB: dict[str, dict] = {
+    "shreya.narayae1@gmail.com": {
+        "email": "shreya.narayae1@gmail.com",
+        "name": "Shreya Narayanan",
+        "password_hash": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+        "role": "admin",
+        "is_active": True,
+        "email_verified": True,
+        "id": "dev-user-001",
+    },
+    "shamarthi.sathish111@gmail.com": {
+        "email": "shamarthi.sathish111@gmail.com",
+        "name": "Shamarthi Sathish",
+        "password_hash": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+        "role": "admin",
+        "is_active": True,
+        "email_verified": True,
+        "id": "dev-user-002",
+    },
+}
 OTP_DB: dict[str, dict] = {}
 VERIFICATION_TOKENS: dict[str, dict] = {}
 OTP_EXPIRE_MINUTES = 10
