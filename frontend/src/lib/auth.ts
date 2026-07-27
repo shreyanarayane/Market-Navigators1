@@ -1,26 +1,24 @@
 /**
  * auth.ts
- * Handles authentication session storage and backend API calls.
- *
- * The registration + verification flow:
- *  1. POST /api/auth/register with { email, password, name }
- *  2. Backend creates an unverified account and sends a verification email
- *  3. User clicks link → /verify-email?token=... page calls verifyEmailToken()
- *  4. verifyEmailToken() calls GET /api/auth/verify-email?token=...
- *  5. On success: backend returns a JWT, we store the session and redirect to /app
- *
- * The login flow:
- *  1. POST /api/auth/login with { email, password }
- *  2. Backend validates credentials and checks email_verified
- *  3. On success: backend returns a JWT token + user info
- *  4. We store { email, name, token, expiresAt } in localStorage
- *  5. All subsequent API calls include "Authorization: Bearer <token>"
+ * Handles authentication - supports both:
+ * 1. Supabase Auth (OAuth: Google, GitHub) - Primary
+ * 2. Railway Backend Auth (email/password) - Fallback
  */
+
+// Supabase config
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8000"
 
 const AUTH_STORAGE_KEY = "competeiq-auth";
 
-// Resolve the backend base URL (Vite env var, falls back to localhost)
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8000";
+// Dynamically import supabase (only if configured)
+let supabase: any = null
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  import('./supabase').then(m => {
+    supabase = m.supabase
+  })
+}
 
 export interface AuthSession {
   email: string;
@@ -29,6 +27,7 @@ export interface AuthSession {
   token: string;
   expiresAt: number;
   emailVerified: boolean;
+  provider?: 'google' | 'github' | 'email'
 }
 
 function getStorage() {
@@ -39,7 +38,71 @@ function getStorage() {
 }
 
 // ---------------------------------------------------------------------------
-// Login — calls the backend, stores JWT on success
+// OAuth Login (Google/GitHub) via Supabase
+// ---------------------------------------------------------------------------
+export async function loginWithGoogle(): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured. Use email/password login instead.')
+  }
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`
+    }
+  })
+  
+  if (error) throw error
+  // Redirect happens automatically
+}
+
+export async function loginWithGitHub(): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase not configured. Use email/password login instead.')
+  }
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`
+    }
+  })
+  
+  if (error) throw error
+  // Redirect happens automatically
+}
+
+// Handle OAuth callback
+export async function handleOAuthCallback(): Promise<AuthSession | null> {
+  if (!supabase) return null
+  
+  const { data: { session }, error } = await supabase.auth.getSession()
+  
+  if (error || !session) return null
+  
+  const user = session.user
+  const userMetadata = user.user_metadata || {}
+  
+  const authSession: AuthSession = {
+    email: user.email,
+    name: userMetadata.full_name || userMetadata.name || user.email?.split('@')[0] || 'User',
+    role: userMetadata.role || 'user',
+    token: session.access_token,
+    expiresAt: new Date(session.expires_at * 1000).getTime(),
+    emailVerified: user.email_confirmed_at !== null,
+    provider: user.app_metadata?.provider as 'google' | 'github' | 'email'
+  }
+  
+  const storage = getStorage()
+  if (storage) {
+    storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authSession))
+  }
+  
+  return authSession
+}
+
+// ---------------------------------------------------------------------------
+// Login with Credentials (Railway Backend fallback)
 // ---------------------------------------------------------------------------
 export async function loginWithCredentials(
   email: string,
@@ -65,6 +128,7 @@ export async function loginWithCredentials(
     token: data.access_token,
     expiresAt: Date.now() + data.expires_in * 1000,
     emailVerified: data.email_verified ?? true,
+    provider: 'email'
   };
 
   const storage = getStorage();
