@@ -77,4 +77,4 @@ class MarketTrendsResponse(BaseModel):
 class TrendsRequest(BaseModel):
     query: str = Field(..., examples=["immune support market trends"])
     category_hint: Optional[str] = None
-    limit: int = 25
+    limit: int = 100

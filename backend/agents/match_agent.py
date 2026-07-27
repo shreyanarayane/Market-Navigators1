@@ -33,7 +33,7 @@ def _score(name: str, ingredients_text: str | None, query_terms: list[str]) -> f
     return round(hits / max(len(query_terms), 1), 3)
 
 
-async def run(query: str, limit: int = 25) -> list[dict[str, Any]]:
+async def run(query: str, limit: int = 100) -> list[dict[str, Any]]:
     """
     Returns a de-duplicated, relevance-scored list of ProductMatch dicts
     from both sources.
