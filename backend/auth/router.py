@@ -128,9 +128,48 @@ def send_otp_email_helper(to_email: str, otp_code: str) -> None:
 def send_verification_email_helper(to_email: str, token: str, name: str) -> None:
     cfg = _get_smtp_settings()
     verify_url = f"{cfg['frontend_base_url']}/verify-email?token={token}"
+    
+    # Dev mode - just print the link
     if not cfg["user"] or not cfg["password"]:
         print(f"\n[DEV] Verification link for {to_email}:\n  {verify_url}\n")
         return
+
+    # Send actual email via SMTP
+    try:
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        subject = "Verify your Compete IQ account"
+        html_body = f"""
+        <div style="font-family:Arial;max-width:480px;margin:30px auto;padding:30px;background:#1e293b;border-radius:12px;color:#e2e8f0;text-align:center;">
+            <h2 style="color:#fff;">Welcome to Compete IQ!</h2>
+            <p>Hi {name},</p>
+            <p>Click the button below to verify your email address:</p>
+            <a href="{verify_url}" style="display:inline-block;background:#6366f1;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin:20px 0;">Verify Email</a>
+            <p style="color:#94a3b8;font-size:12px;">Or copy this link: {verify_url}</p>
+            <p style="color:#94a3b8;font-size:12px;">This link expires in 7 days.</p>
+        </div>"""
+        
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = cfg["from_addr"]
+        msg["To"] = to_email
+        msg.attach(MIMEText(html_body, "html"))
+
+        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=10) as server:
+            server.ehlo()
+            if cfg["port"] == 587:
+                server.starttls()
+            server.login(cfg["user"], cfg["password"])
+            server.sendmail(cfg["from_addr"], [to_email], msg.as_string())
+        
+        print(f"\n[EMAIL SENT] Verification link sent to {to_email}")
+        logger.info(f"Verification email sent to {to_email}")
+    except Exception as exc:
+        logger.error(f"Failed to send verification email: {exc}")
+        print(f"\n[EMAIL FAILED] Could not send email to {to_email}: {exc}")
+        # Still print the link as fallback
+        print(f"[DEV FALLBACK] Verification link for {to_email}:\n  {verify_url}\n")
 
 
 # ---------------------------------------------------------------------------
