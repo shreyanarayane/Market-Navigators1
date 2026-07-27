@@ -619,7 +619,7 @@ async def register(req: RegisterRequest):
     sync_user_to_public_table(user_id, email, name)
 
     # Auto-verify in dev mode (when SMTP is not configured)
-    dev_mode = not os.getenv("SMTP_USER")
+    dev_mode = not os.getenv("SMTP_USER") or not os.getenv("RESEND_API_KEY")
     USERS_DB[email] = {
         "email": email,
         "name": name,
@@ -842,7 +842,7 @@ async def resend_verification(req: LoginRequest):
     verification_token = _make_verification_token(email)
     send_verification_email_helper(email, verification_token, user.get("name", "User"))
 
-    dev_mode = not os.getenv("SMTP_USER")
+    dev_mode = not os.getenv("SMTP_USER") or not os.getenv("RESEND_API_KEY")
     response: dict = {"message": "Verification email resent successfully! Check your inbox."}
     if dev_mode:
         response["verification_link"] = f"{_get_smtp_settings()['frontend_base_url']}/verify-email?token={verification_token}"
